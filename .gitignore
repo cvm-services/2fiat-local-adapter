@@ -1,0 +1,7 @@
+.env
+*.session
+*.cookie
+*.har
+*.png
+*.log
+__pycache__/
