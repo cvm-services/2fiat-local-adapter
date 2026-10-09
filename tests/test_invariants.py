@@ -22,11 +22,21 @@ def test_capabilities_never_claims_it_can_authorize():
     assert caps["needs_human_3ds"] is True
 
 
-def test_entry_points_refuse_rather_than_pretend():
-    with pytest.raises(adapter.NotImplementedYet):
+def test_entry_points_refuse_rather_than_pretend(tmp_path, monkeypatch, capsys):
+    """With no session/config on this machine, every entry point REFUSES.
+
+    This replaced a test that asserted `NotImplementedYet`: the implementation now
+    exists, so the property that must survive is the honest one - an unconfigured
+    adapter refuses loudly instead of inventing a balance or a checkout result.
+    """
+    monkeypatch.setattr(adapter, "DEFAULT_CONFIG_PATH", tmp_path / "nope.json")
+    with pytest.raises(adapter.Refused):
         adapter.balance()
-    with pytest.raises(adapter.NotImplementedYet):
+    with pytest.raises(adapter.Refused):
         adapter.pay_checkout("https://example.invalid/checkout", "1.00")
+    assert adapter.main(["capabilities"]) == 0  # metadata needs no secrets
+    assert adapter.main(["balance"]) == 1
+    assert "REFUSED" in capsys.readouterr().err
 
 
 def test_no_entry_point_takes_card_material_as_an_argument():

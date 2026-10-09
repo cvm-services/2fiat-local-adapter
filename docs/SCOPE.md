@@ -1,6 +1,6 @@
 # Project (b): 2fiat local card adapter — scope, threat model, build order
 
-**Status:** SCOPED (not built). Operator asked for this on 2026-10-07.
+**Status:** PARTIALLY BUILT (2026-10-10). Operator asked for this on 2026-10-07.
 **Location:** PRIVATE repo, deliberately OUTSIDE the `cvm-services` org.
 **Related:** the rail-only CVM in `cvm-services/cvm-service-kit` (`services/cvm-2fiat/`, card t_3257a720). That service never sees card material; this adapter is the only component that ever does.
 
@@ -70,15 +70,19 @@ operator ── runs ──▶ 2fiat-adapter (local)
 
 Read `~/reports/research/2fiat-surface-2026-10-07.md`, then re-probe **with the operator's own session, on his machine**: does the details endpoint's OTP arrive by email only (human step, unavoidable), or does the API itself surface it after delivery (no human step)? Everything about how much can be automated hinges on that one answer. Probe and record the raw request/response shapes (status codes, field names) — never a card value.
 
-## 8. Build order (each a small card once approved)
+Build order, with the honest state of each step:
 
-1. Repo skeleton + the invariant tests (§4) written RED — they pass trivially only because the code is absent, and must stay green forever after.
-2. Session store: vault-backed, 0600, with a test that no value can arrive via argv or env.
-3. `balance()` + a `capabilities()` report.
-4. The details call behind the OTP gate, with tests 1-3 above as the gate.
-5. Browser step with a dedicated profile; DOM fill only; clipboard disabled; headed under xvfb; evidence = a screenshot with the card fields redacted by the app itself.
-6. Receipt + the optional signed one-way summary to the rail.
-7. A short runbook for the operator: how to run one payment, what to do when the OTP never arrives, how to rotate the session.
+1. Repo skeleton + the invariant tests (§4) written RED — **done**; all five stay green (tests/test_invariants.py).
+2. Session store: vault-backed, 0600, with a test that no value can arrive via argv or env — **done** (src/session.py; 4 tests).
+3. `balance()` + a `capabilities()` report — **done** (src/adapter.py; the balance read is tested against a fake client; the real endpoint is unverified pending §7).
+4. The details call behind the OTP gate, with tests 1-3 above as the gate — **done** (src/carddata.py; the gate is one-shot, bounded, and refuses an unrecognised surface rather than half-parsing it).
+5. Browser step with a dedicated profile; DOM fill only; clipboard disabled; headed under xvfb; evidence = a screenshot with the card fields redacted by the app itself — **WRITTEN, NOT EXERCISED** (src/browser.py). The DOM-only fill, the dedicated profile and the stop-at-3DS resting state are implemented; the screenshot evidence and an off-box test do not exist yet, and nothing here has driven a real checkout.
+6. Receipt + the optional signed one-way summary to the rail — **receipt done** (points 1-2-3-4-6-7-8 of the runbook); the signed summary is **not built**. The rail side (cvm-service-kit `card.pay_checkout`) does the durable one-attempt claim and the ADR-0012 escalation.
+7. A short runbook for the operator — **done** (docs/RUNBOOK.md).
+
+Added beyond the original list, because the rail's safety property needed a local
+counterpart: the **one-attempt ledger** (`src/adapter.py`): a durable 0600 record that
+refuses a second local attempt on the same checkout URL even if the rail is bypassed.
 
 ## 9. Open questions for the operator
 
