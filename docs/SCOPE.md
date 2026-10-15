@@ -1,15 +1,27 @@
 # Project (b): 2fiat local card adapter — scope, threat model, build order
 
 **Status:** SCOPED (not built). Operator asked for this on 2026-10-07.
-**Location:** PRIVATE repo, deliberately OUTSIDE the `cvm-services` org.
+**Location:** `cvm-services/2fiat-local-adapter` — PRIVATE (must stay private; see §1).
 **Related:** the rail-only CVM in `cvm-services/cvm-service-kit` (`services/cvm-2fiat/`, card t_3257a720). That service never sees card material; this adapter is the only component that ever does.
 
-## 1. Why separate, and why not in the org
+## 1. Why PRIVATE (revised 2026-10-15 — moved into the cvm-services org)
 
-1. The operator's own instruction (2026-10-07): "(a) now, and (b) as a separate private local project (not in the org)".
-2. The org's repos are public by default (`cvm-service-kit`, `cvm-registry`, `contextvm-services` are PUBLIC). A component whose job is to read a PAN/CVV and drive a browser must not sit one mistaken `git remote` or one leak-scan miss away from world-readable history.
-3. Separation is a design statement, not just hygiene: it keeps "an agent can pull a card number" from becoming a normal, shareable capability of the CVM platform. Our own risk review refuses a `card.details` tool for a public service; the code for the *local* version should not live where the public services live.
-4. Blast radius: if this repo is ever compromised, nothing else in the platform is.
+**Superseded decision.** This repo was originally created under `felixfelix-bot`
+with the rule "keep it outside the cvm-services org entirely", on the reasoning
+that the org's repos are public by default and a component that reads a PAN/CVV
+must not sit one leak away from world-readable history. On 2026-10-15 the
+operator instructed that every relevant repo, including this one, be consolidated
+into `cvm-services`. That instruction is followed — **with the original concern
+preserved by other means, because it was a real concern:**
+
+1. **The repo is PRIVATE inside the org, and must stay private.** The original
+   argument was never "the org is bad", it was "this must never be world-readable".
+   Org membership does not change that requirement; the visibility flag does.
+   A public-by-default org is exactly why this needs an explicit check rather
+   than an assumption — see the invariant test in §4.7.
+2. **The operator's original instruction (2026-10-07)** was "(a) now, and (b) as a
+   separate private local project (not in the org)" — the *private* and *local*
+   halves still hold; only the *location* half was superseded.
 
 This is reversible in one command (`gh repo transfer`) if the operator prefers findability over the boundary.
 
@@ -44,6 +56,11 @@ Our platform already knows the fourth: a value that reaches an LLM-backed agent'
 4. The adapter refuses to run when it detects a shared/agent-readable context it cannot control: it says so and stops rather than proceeding quietly. (Design intent: this is a laptop program, not a box program.)
 5. No remote component — including the CVM rail in the org — can cause the adapter to disclose card values. The CVM may only ever learn a boolean and a balance.
 6. Session material is held in a vault-backed file (0600), never in the repo, never in a unit file, never in shell history.
+7. **This repo is PRIVATE and must stay private** (added 2026-10-15 when it moved
+   into the `cvm-services` org, whose repos are public by default). A repo that
+   reads a PAN/CVV must never be world-readable. The CI/invariant test asserts
+   `private=true` via the API and FAILS the build if it is ever flipped public —
+   the check exists because the default assumption is the dangerous one.
 
 ## 5. Shape
 
