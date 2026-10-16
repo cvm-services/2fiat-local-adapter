@@ -27,7 +27,16 @@ This is reversible in one command (`gh repo transfer`) if the operator prefers f
 
 ## 2. What it is, and what it is not
 
-**Is:** a small local program on the operator's own machine that holds the 2fiat session and, when explicitly told to, reads one card's details for one checkout, fills the merchant's payment page in a browser, and stops at the human 3DS prompt.
+**Is:** a small local program on the operator's own machine that holds the 2fiat session and, when explicitly told to, reads one card's details for one checkout, fills the merchant's payment page in a browser.
+
+**CORRECTION (2026-10-16, see `docs/R0-3DS-MEASUREMENT.md`):** the phrase
+"stops at the human 3DS prompt" described a DESIGN ASSUMPTION that has now been
+measured. Four live runs found **no OTP, no 3DS, and no challenge of any kind** on
+auth, card listing, or card-details disclosure — so there is no human stop to
+design around at the details stage. What remains unproven is the **spend** path
+(masked PAN means the details call alone cannot complete a checkout), and the
+observed failure mode there is insufficient funds, not 3DS. Do not reintroduce
+the 3DS assumption without a measurement.
 
 **Is not:** a service. No inbound network listener, no Nostr identity, no announcements, no remote API. Nothing about it is discoverable. It is invoked locally, by the operator, for one payment at a time.
 
